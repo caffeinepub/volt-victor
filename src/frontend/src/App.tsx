@@ -113,6 +113,15 @@ const FOUNDERS = [
     linkedin: "#",
     twitter: "#",
   },
+  {
+    name: "Krishnendu Das",
+    role: "Co-Founder",
+    image: "/assets/krisnandu-das.jpeg",
+    initials: "KD",
+    bio: "Krishnendu is a co-founder at Volt & Victor, passionate about empowering students at Saraswati Devi Public School through affordable, handmade electronic projects that meet school standards.",
+    linkedin: "#",
+    twitter: "#",
+  },
 ];
 
 function Header() {
@@ -506,13 +515,13 @@ function FoundersSection() {
             About the Founders
           </h2>
           <p className="mt-4 text-white/60 max-w-xl mx-auto text-sm leading-relaxed">
-            Meet the passionate duo from Murshidabad who help students at
+            Meet the passionate team from Murshidabad who help students at
             Saraswati Devi Public School build handmade electronic projects at
             affordable prices.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {FOUNDERS.map((founder, i) => (
             <motion.div
               key={founder.name}
