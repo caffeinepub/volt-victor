@@ -1,0 +1,79 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* Volt & Victor color tokens in OKLCH L C H */
+    /* Navy dark background: #0B1F33 */
+    --vv-navy: 0.22 0.048 240;
+    /* Deeper navy: #0E2A45 */
+    --vv-navy-deep: 0.26 0.055 240;
+    /* Accent blue: #1E73FF */
+    --vv-accent: 0.52 0.22 255;
+    /* Light section bg: #F2F5F8 */
+    --vv-light: 0.966 0.008 240;
+    /* Primary text on light: #111827 */
+    --vv-text-dark: 0.18 0.012 255;
+    /* Secondary gray: #6B7280 */
+    --vv-text-muted: 0.55 0.012 255;
+    /* White */
+    --vv-white: 1 0 0;
+
+    /* shadcn tokens */
+    --background: 1 0 0;
+    --foreground: 0.18 0.012 255;
+    --card: 1 0 0;
+    --card-foreground: 0.18 0.012 255;
+    --popover: 1 0 0;
+    --popover-foreground: 0.18 0.012 255;
+    --primary: 0.52 0.22 255;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.966 0.008 240;
+    --secondary-foreground: 0.18 0.012 255;
+    --muted: 0.966 0.008 240;
+    --muted-foreground: 0.55 0.012 255;
+    --accent: 0.52 0.22 255;
+    --accent-foreground: 1 0 0;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    --border: 0.9 0.008 240;
+    --input: 0.9 0.008 240;
+    --ring: 0.52 0.22 255;
+    --chart-1: 0.646 0.222 41.116;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 0.985 0 0;
+    --sidebar-foreground: 0.145 0 0;
+    --sidebar-primary: 0.52 0.22 255;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.966 0.008 240;
+    --sidebar-accent-foreground: 0.18 0.012 255;
+    --sidebar-border: 0.9 0.008 240;
+    --sidebar-ring: 0.52 0.22 255;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Montserrat", sans-serif;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
