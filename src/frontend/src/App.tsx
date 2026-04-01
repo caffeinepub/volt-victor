@@ -1,7 +1,16 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight,
@@ -14,24 +23,236 @@ import {
   Mail,
   MapPin,
   Menu,
+  Minus,
   Phone,
+  Plus,
   ShieldCheck,
+  ShoppingCart,
   Sparkles,
+  Trash2,
   Twitter,
   X,
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import AdminPage from "./AdminPage";
 import { useActor } from "./hooks/useActor";
 
+// ─── Types ─────────────────────────────────────────────────────────────────
+type Product = {
+  id: string;
+  name: string;
+  class: string;
+  price: number;
+  originalPrice?: number;
+  offer?: string;
+  description: string;
+  image: string;
+};
+
+type CartItem = {
+  product: Product;
+  quantity: number;
+};
+
+type CartContextType = {
+  items: CartItem[];
+  addToCart: (product: Product) => void;
+  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  totalItems: number;
+  totalPrice: number;
+};
+
+// ─── Cart Context ───────────────────────────────────────────────────────────
+const CartContext = createContext<CartContextType>({
+  items: [],
+  addToCart: () => {},
+  removeFromCart: () => {},
+  updateQuantity: () => {},
+  clearCart: () => {},
+  totalItems: 0,
+  totalPrice: 0,
+});
+
+function useCart() {
+  return useContext(CartContext);
+}
+
+// ─── Data ───────────────────────────────────────────────────────────────────
 const NAV_LINKS = [
   { label: "HOME", href: "#home" },
   { label: "SERVICES", href: "#solutions" },
+  { label: "SHOP", href: "#shop" },
   { label: "ABOUT US", href: "#founders" },
   { label: "GALLERY", href: "#gallery" },
   { label: "CONTACT", href: "#contact" },
+];
+
+const PRODUCTS: Product[] = [
+  {
+    id: "led-circuit",
+    name: "LED Light Circuit",
+    class: "Class 6-7",
+    price: 199,
+    description:
+      "A working LED light circuit demonstrating basic electricity. Perfect for Class 6-7 science projects.",
+    image: "/assets/generated/project-led-circuit.dim_600x400.jpg",
+  },
+  {
+    id: "electric-motor",
+    name: "Simple Electric Motor",
+    class: "Class 8",
+    price: 349,
+    description:
+      "Handmade electric motor showing electromagnetic principles. Great for Class 8 physics.",
+    image: "/assets/generated/project-electric-motor.dim_600x400.jpg",
+  },
+  {
+    id: "basic-circuit",
+    name: "Series & Parallel Circuits",
+    class: "Class 6",
+    price: 249,
+    description:
+      "A board showing series and parallel circuit connections with LEDs.",
+    image: "/assets/generated/project-basic-circuit.dim_600x400.jpg",
+  },
+  {
+    id: "alarm-circuit",
+    name: "Buzzer Alarm Circuit",
+    class: "Class 9",
+    price: 299,
+    description:
+      "A working buzzer alarm circuit — excellent for Class 9 electronics.",
+    image: "/assets/generated/project-alarm-circuit.dim_600x400.jpg",
+  },
+  {
+    id: "traffic-light",
+    name: "Traffic Light Model",
+    class: "Class 5",
+    price: 279,
+    description:
+      "A 3-light traffic signal model that cycles automatically. Great for Class 5.",
+    image: "/assets/generated/project-traffic-light.dim_600x400.jpg",
+  },
+  {
+    id: "electromagnet",
+    name: "Electromagnet Crane",
+    class: "Class 8",
+    price: 399,
+    description:
+      "Handmade electromagnetic crane showing magnetism. Perfect for Class 8.",
+    image: "/assets/generated/project-electromagnet.dim_600x400.jpg",
+  },
+];
+
+const MATERIALS: Product[] = [
+  {
+    id: "led-packet",
+    name: "LED Lights Pack (25pcs)",
+    class: "All Classes",
+    price: 49,
+    originalPrice: 65,
+    offer: "25% OFF",
+    description:
+      "Pack of 25 assorted colour LEDs. Essential for any light-based circuit project.",
+    image: "/assets/generated/material-led-packet.dim_600x400.jpg",
+  },
+  {
+    id: "resistors",
+    name: "Resistor Kit (100pcs)",
+    class: "All Classes",
+    price: 39,
+    originalPrice: 55,
+    offer: "29% OFF",
+    description:
+      "Assorted carbon film resistors — must-have for controlling current in any circuit.",
+    image: "/assets/generated/material-resistors.dim_600x400.jpg",
+  },
+  {
+    id: "jumper-wires",
+    name: "Jumper Wires (40pcs)",
+    class: "All Classes",
+    price: 59,
+    originalPrice: 79,
+    offer: "25% OFF",
+    description: "Male-to-male jumper wires for easy breadboard connections.",
+    image: "/assets/generated/material-jumper-wires.dim_600x400.jpg",
+  },
+  {
+    id: "breadboard",
+    name: "Mini Breadboard",
+    class: "All Classes",
+    price: 79,
+    originalPrice: 99,
+    offer: "20% OFF",
+    description:
+      "Solderless mini breadboard — perfect for prototyping circuits without soldering.",
+    image: "/assets/generated/material-breadboard.dim_600x400.jpg",
+  },
+  {
+    id: "capacitors",
+    name: "Capacitor Kit (20pcs)",
+    class: "All Classes",
+    price: 45,
+    originalPrice: 60,
+    offer: "25% OFF",
+    description:
+      "Assorted ceramic capacitors for storing and releasing charge in circuits.",
+    image: "/assets/generated/material-capacitors.dim_600x400.jpg",
+  },
+  {
+    id: "transistors",
+    name: "Transistor Pack (BC547, 10pcs)",
+    class: "All Classes",
+    price: 35,
+    originalPrice: 50,
+    offer: "30% OFF",
+    description:
+      "NPN transistors for switching and amplifying signals in your circuits.",
+    image: "/assets/generated/material-transistors.dim_600x400.jpg",
+  },
+  {
+    id: "9v-battery",
+    name: "9V Battery",
+    class: "All Classes",
+    price: 55,
+    originalPrice: 70,
+    offer: "21% OFF",
+    description:
+      "Standard 9V battery — reliable power source for small electronic projects.",
+    image: "/assets/generated/material-battery.dim_600x400.jpg",
+  },
+  {
+    id: "copper-wire",
+    name: "Copper Wire (10m)",
+    class: "All Classes",
+    price: 69,
+    originalPrice: 89,
+    offer: "22% OFF",
+    description:
+      "Thin insulated copper wire for winding coils and making connections.",
+    image: "/assets/generated/material-copper-wire.dim_600x400.jpg",
+  },
+  {
+    id: "soldering-iron",
+    name: "Soldering Iron",
+    class: "All Classes",
+    price: 100,
+    originalPrice: 140,
+    offer: "29% OFF",
+    description:
+      "25W soldering iron for permanently joining electronic components. Essential for advanced circuit work.",
+    image: "/assets/generated/material-soldering-iron.dim_600x400.jpg",
+  },
 ];
 
 const SOLUTIONS = [
@@ -97,7 +318,7 @@ const GALLERY_ITEMS = [
 const FOUNDERS = [
   {
     name: "Sufian Hossain",
-    role: "Co-Founder & Director",
+    role: "Founder",
     image: "/assets/image-019d3fa6-24ec-77a0-af20-c98186aaa0ff.png",
     initials: "SH",
     bio: "Sufian is the creative force behind Volt & Victor. He personally helps students at Saraswati Devi Public School design and build handmade electronic projects — making sure every circuit works and every project looks genuinely student-made at an affordable price.",
@@ -124,9 +345,280 @@ const FOUNDERS = [
   },
 ];
 
-function Header() {
+// ─── Cart Drawer ────────────────────────────────────────────────────────────
+function CartDrawer({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { items, removeFromCart, updateQuantity, clearCart, totalPrice } =
+    useCart();
+  const { actor, isFetching } = useActor();
+  const [checkout, setCheckout] = useState(false);
+  const [form, setForm] = useState({ name: "", studentClass: "", phone: "" });
+  const [placing, setPlacing] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPlacing(true);
+    try {
+      if (actor && !isFetching) {
+        const orderItems = items.map((i) => ({
+          productId: i.product.id,
+          productName: i.product.name,
+          price: i.product.price,
+          quantity: i.quantity,
+        }));
+        await (actor as any).placeOrder(
+          form.name,
+          form.studentClass,
+          form.phone,
+          orderItems,
+          totalPrice,
+        );
+      }
+    } catch {
+      // silently continue
+    } finally {
+      setPlacing(false);
+    }
+    setSuccess(true);
+    clearCart();
+    setForm({ name: "", studentClass: "", phone: "" });
+    setCheckout(false);
+    setTimeout(() => {
+      setSuccess(false);
+      onClose();
+    }, 3000);
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent
+        side="right"
+        className="bg-vv-navy-deep border-l border-white/10 text-white w-full max-w-md p-0 flex flex-col"
+        data-ocid="cart.sheet"
+      >
+        <SheetHeader className="px-6 py-5 border-b border-white/10 flex-shrink-0">
+          <SheetTitle className="text-white font-display font-bold uppercase tracking-widest text-base flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-vv-accent" />
+            Your Cart
+          </SheetTitle>
+        </SheetHeader>
+
+        {success ? (
+          <div
+            className="flex-1 flex flex-col items-center justify-center px-6 text-center"
+            data-ocid="cart.success_state"
+          >
+            <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mb-4">
+              <ShieldCheck className="w-8 h-8 text-green-400" />
+            </div>
+            <h3 className="font-display font-bold text-white text-xl mb-2">
+              Order Placed!
+            </h3>
+            <p className="text-white/60 text-sm">
+              We will contact you on WhatsApp shortly to confirm your order.
+            </p>
+          </div>
+        ) : items.length === 0 ? (
+          <div
+            className="flex-1 flex flex-col items-center justify-center px-6 text-center"
+            data-ocid="cart.empty_state"
+          >
+            <ShoppingCart className="w-12 h-12 text-white/20 mb-4" />
+            <p className="text-white/50 text-sm font-semibold">
+              Your cart is empty
+            </p>
+            <p className="text-white/30 text-xs mt-1">
+              Browse the shop and add projects to order.
+            </p>
+            <Button
+              onClick={onClose}
+              className="mt-6 bg-vv-accent hover:bg-vv-accent/90 text-white font-bold uppercase tracking-widest text-xs px-6 py-2 rounded-sm"
+              data-ocid="cart.primary_button"
+            >
+              Browse Projects
+            </Button>
+          </div>
+        ) : (
+          <>
+            <ScrollArea className="flex-1 px-6 py-4">
+              {!checkout ? (
+                <div className="space-y-4">
+                  {items.map((item, idx) => (
+                    <div
+                      key={item.product.id}
+                      className="flex gap-3 bg-white/5 border border-white/10 rounded-xl p-3"
+                      data-ocid={`cart.item.${idx + 1}`}
+                    >
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-display font-bold text-white text-sm truncate">
+                          {item.product.name}
+                        </div>
+                        <div className="text-vv-accent text-xs font-bold mt-0.5">
+                          ₹{item.product.price}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity - 1)
+                            }
+                            className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                            data-ocid={`cart.toggle.${idx + 1}`}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-white text-sm font-bold w-4 text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity + 1)
+                            }
+                            className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                            data-ocid={`cart.toggle.${idx + 1}`}
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.product.id)}
+                        className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0 mt-1"
+                        data-ocid={`cart.delete_button.${idx + 1}`}
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <form
+                  id="checkout-form"
+                  onSubmit={handleOrder}
+                  className="space-y-4"
+                  data-ocid="cart.panel"
+                >
+                  <h3 className="font-display font-bold text-white text-base uppercase tracking-wide">
+                    Your Details
+                  </h3>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-white/60">
+                      Student Name
+                    </Label>
+                    <Input
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, name: e.target.value }))
+                      }
+                      placeholder="Your full name"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-vv-accent"
+                      data-ocid="cart.input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-white/60">
+                      Class
+                    </Label>
+                    <Input
+                      value={form.studentClass}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, studentClass: e.target.value }))
+                      }
+                      placeholder="e.g. Class 8"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-vv-accent"
+                      data-ocid="cart.input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-white/60">
+                      Phone / WhatsApp
+                    </Label>
+                    <Input
+                      value={form.phone}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, phone: e.target.value }))
+                      }
+                      placeholder="Your WhatsApp number"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-vv-accent"
+                      data-ocid="cart.input"
+                    />
+                  </div>
+                </form>
+              )}
+            </ScrollArea>
+
+            <div className="px-6 py-5 border-t border-white/10 flex-shrink-0 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-white/60 text-sm font-semibold uppercase tracking-wider">
+                  Subtotal
+                </span>
+                <span className="text-white font-display font-black text-xl">
+                  ₹{totalPrice}
+                </span>
+              </div>
+              <Separator className="bg-white/10" />
+              {!checkout ? (
+                <Button
+                  onClick={() => setCheckout(true)}
+                  className="w-full bg-vv-accent hover:bg-vv-accent/90 text-white font-bold uppercase tracking-widest text-sm py-5 rounded-sm"
+                  data-ocid="cart.primary_button"
+                >
+                  Place Order <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCheckout(false)}
+                    className="flex-1 border-white/20 text-white hover:bg-white/10 bg-transparent font-bold uppercase tracking-widest text-xs py-5 rounded-sm"
+                    data-ocid="cart.cancel_button"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    form="checkout-form"
+                    disabled={placing}
+                    className="flex-1 bg-vv-accent hover:bg-vv-accent/90 text-white font-bold uppercase tracking-widest text-xs py-5 rounded-sm"
+                    data-ocid="cart.submit_button"
+                  >
+                    {placing ? "Confirming..." : "Confirm Order"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── Header ─────────────────────────────────────────────────────────────────
+function Header({ onCartOpen }: { onCartOpen: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { totalItems } = useCart();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -164,8 +656,22 @@ function Header() {
           ))}
         </nav>
 
-        {/* CTA */}
-        <div className="hidden md:block">
+        {/* CTA + Cart */}
+        <div className="hidden md:flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onCartOpen}
+            className="relative w-10 h-10 rounded-full bg-white/10 hover:bg-vv-accent/20 border border-white/20 hover:border-vv-accent/50 flex items-center justify-center text-white transition-all duration-200"
+            data-ocid="cart.open_modal_button"
+            aria-label="Open cart"
+          >
+            <ShoppingCart className="w-5 h-5" />
+            {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-vv-accent text-white text-[10px] font-black flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
+          </button>
           <Button
             data-ocid="nav.primary_button"
             asChild
@@ -212,17 +718,36 @@ function Header() {
                   {link.label}
                 </a>
               ))}
-              <button
-                type="button"
-                data-ocid="nav.primary_button"
-                onClick={() => {
-                  setMobileOpen(false);
-                  window.location.hash = "#contact";
-                }}
-                className="bg-vv-accent hover:bg-vv-accent/90 text-white font-bold text-xs tracking-widest uppercase w-full block text-center py-2 px-4 rounded-sm"
-              >
-                GET A PROJECT
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    onCartOpen();
+                  }}
+                  className="relative flex-shrink-0 w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white"
+                  data-ocid="cart.open_modal_button"
+                  aria-label="Open cart"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-vv-accent text-white text-[10px] font-black flex items-center justify-center">
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  data-ocid="nav.primary_button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    window.location.hash = "#contact";
+                  }}
+                  className="bg-vv-accent hover:bg-vv-accent/90 text-white font-bold text-xs tracking-widest uppercase flex-1 block text-center py-2 px-4 rounded-sm"
+                >
+                  GET A PROJECT
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -231,13 +756,13 @@ function Header() {
   );
 }
 
+// ─── Hero Section ────────────────────────────────────────────────────────────
 function HeroSection() {
   return (
     <section
       id="home"
       className="relative min-h-screen flex items-center overflow-hidden"
     >
-      {/* Background image + overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -286,8 +811,8 @@ function HeroSection() {
               asChild
               className="bg-vv-accent hover:bg-vv-accent/90 text-white font-bold uppercase tracking-widest text-sm px-8 py-6 rounded-sm"
             >
-              <a href="#solutions">
-                OUR SERVICES <ArrowRight className="ml-2 w-4 h-4" />
+              <a href="#shop">
+                ORDER NOW <ShoppingCart className="ml-2 w-4 h-4" />
               </a>
             </Button>
             <Button
@@ -296,12 +821,11 @@ function HeroSection() {
               asChild
               className="border-white/50 text-white hover:bg-white/10 font-bold uppercase tracking-widest text-sm px-8 py-6 rounded-sm bg-transparent"
             >
-              <a href="#contact">GET YOUR PROJECT</a>
+              <a href="#solutions">OUR SERVICES</a>
             </Button>
           </div>
         </motion.div>
 
-        {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -329,6 +853,7 @@ function HeroSection() {
   );
 }
 
+// ─── Solutions Section ───────────────────────────────────────────────────────
 function SolutionsSection() {
   return (
     <section id="solutions" className="bg-vv-light py-24">
@@ -388,9 +913,190 @@ function SolutionsSection() {
   );
 }
 
+// ─── Store Section (tabbed: Projects + Materials) ────────────────────────────
+function StoreSection({ onCartOpen }: { onCartOpen: () => void }) {
+  const { addToCart, items } = useCart();
+  const [added, setAdded] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"projects" | "materials">(
+    "projects",
+  );
+
+  const handleAdd = useCallback(
+    (product: Product) => {
+      addToCart(product);
+      setAdded(product.id);
+      setTimeout(() => setAdded(null), 1500);
+    },
+    [addToCart],
+  );
+
+  const activeProducts = activeTab === "projects" ? PRODUCTS : MATERIALS;
+
+  return (
+    <section id="shop" className="bg-vv-navy py-24">
+      <div className="max-w-[1200px] mx-auto px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10"
+        >
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="w-8 h-0.5 bg-vv-accent" />
+            <span className="text-vv-accent text-xs font-bold tracking-[0.3em] uppercase">
+              Order Online
+            </span>
+            <div className="w-8 h-0.5 bg-vv-accent" />
+          </div>
+          <h2 className="font-display font-black text-white uppercase text-3xl md:text-4xl tracking-tight">
+            Our Store
+          </h2>
+          <p className="mt-4 text-white/60 max-w-xl mx-auto text-sm leading-relaxed">
+            Browse handmade projects or individual electronic components. Add to
+            cart and place your order — delivered to Saraswati Devi Public
+            School students in Murshidabad.
+          </p>
+        </motion.div>
+
+        {/* Tab switcher */}
+        <div className="flex justify-center mb-12">
+          <div className="flex gap-2 bg-white/5 border border-white/10 rounded-full p-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab("projects")}
+              className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                activeTab === "projects"
+                  ? "bg-vv-accent text-white shadow-lg"
+                  : "text-white/60 hover:text-white"
+              }`}
+              data-ocid="shop.tab"
+            >
+              Order Projects
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("materials")}
+              className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                activeTab === "materials"
+                  ? "bg-vv-accent text-white shadow-lg"
+                  : "text-white/60 hover:text-white"
+              }`}
+              data-ocid="shop.tab"
+            >
+              Electronics Materials
+            </button>
+          </div>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.3 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {activeProducts.map((product, i) => {
+              const inCart = items.some((ci) => ci.product.id === product.id);
+              const justAdded = added === product.id;
+              return (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: i * 0.08 }}
+                  className="group bg-white/5 border border-white/10 hover:border-vv-accent/40 rounded-2xl overflow-hidden transition-all duration-300"
+                  data-ocid={`shop.item.${i + 1}`}
+                >
+                  <div className="aspect-[3/2] overflow-hidden relative">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <Badge className="bg-vv-accent text-white border-0 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">
+                        {product.class}
+                      </Badge>
+                    </div>
+                    {product.offer && (
+                      <div className="absolute top-3 right-3">
+                        <Badge className="bg-green-500 text-white border-0 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">
+                          {product.offer}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-display font-bold text-white text-base mb-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-white/55 text-xs leading-relaxed mb-4">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-display font-black text-vv-accent text-2xl leading-none">
+                          ₹{product.price}
+                        </span>
+                        {product.originalPrice && (
+                          <span className="text-white/40 text-xs line-through mt-0.5">
+                            ₹{product.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {inCart && (
+                          <button
+                            type="button"
+                            onClick={onCartOpen}
+                            className="text-xs text-white/50 hover:text-white border border-white/20 hover:border-white/40 px-3 py-2 rounded-sm transition-colors"
+                            data-ocid={`shop.secondary_button.${i + 1}`}
+                          >
+                            View Cart
+                          </button>
+                        )}
+                        <Button
+                          onClick={() => handleAdd(product)}
+                          className={`text-xs font-bold uppercase tracking-wider px-4 py-2 h-auto rounded-sm transition-all duration-200 ${
+                            justAdded
+                              ? "bg-green-500 hover:bg-green-500 text-white"
+                              : "bg-vv-accent hover:bg-vv-accent/90 text-white"
+                          }`}
+                          data-ocid={`shop.primary_button.${i + 1}`}
+                        >
+                          {justAdded ? "Added!" : "Add to Cart"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </AnimatePresence>
+        <p className="text-center text-white/60 text-sm mt-8 border border-white/10 rounded-xl py-4 px-6 bg-white/5">
+          There are various items that are not able to show you. If you want to
+          order those particular items contact with our mobile number given
+          alongside —{" "}
+          <a
+            href="tel:+918653984069"
+            className="text-vv-accent font-semibold hover:underline"
+          >
+            +91 86539 84069
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─── Gallery Section ─────────────────────────────────────────────────────────
 function TechSection() {
   return (
-    <section id="gallery" className="bg-vv-navy py-24 overflow-hidden">
+    <section id="gallery" className="bg-vv-navy-deep py-24 overflow-hidden">
       <div className="max-w-[1200px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -445,7 +1151,6 @@ function TechSection() {
           ))}
         </div>
 
-        {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             {
@@ -493,9 +1198,10 @@ function TechSection() {
   );
 }
 
+// ─── Founders Section ────────────────────────────────────────────────────────
 function FoundersSection() {
   return (
-    <section id="founders" className="bg-vv-navy-deep py-24">
+    <section id="founders" className="bg-vv-navy py-24">
       <div className="max-w-[1200px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -521,62 +1227,68 @@ function FoundersSection() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {FOUNDERS.map((founder, i) => (
-            <motion.div
-              key={founder.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.15 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/8 transition-all duration-300"
-              data-ocid={`founders.item.${i + 1}`}
-            >
-              <div className="flex items-start gap-6">
-                <Avatar className="w-24 h-24 flex-shrink-0 ring-4 ring-vv-accent/30">
-                  <AvatarImage src={founder.image} alt={founder.name} />
-                  <AvatarFallback className="bg-vv-accent text-white font-display font-black text-xl">
-                    {founder.initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-vv-accent uppercase tracking-widest mb-1">
-                    {founder.role}
-                  </div>
-                  <h3 className="font-display font-bold text-white text-xl mb-3">
-                    {founder.name}
-                  </h3>
-                  <p className="text-white/60 text-sm leading-relaxed mb-5">
-                    {founder.bio}
-                  </p>
-                  <div className="flex gap-3">
-                    <a
-                      href={founder.linkedin}
-                      data-ocid={`founders.link.${i + 1}`}
-                      className="w-9 h-9 rounded-full bg-white/10 hover:bg-vv-accent flex items-center justify-center text-white/70 hover:text-white transition-all duration-200"
-                      aria-label={`${founder.name} LinkedIn`}
-                    >
-                      <Linkedin className="w-4 h-4" />
-                    </a>
-                    <a
-                      href={founder.twitter}
-                      data-ocid={`founders.link.${i + 1}`}
-                      className="w-9 h-9 rounded-full bg-white/10 hover:bg-vv-accent flex items-center justify-center text-white/70 hover:text-white transition-all duration-200"
-                      aria-label={`${founder.name} Twitter`}
-                    >
-                      <Twitter className="w-4 h-4" />
-                    </a>
+        <div className="border border-white/20 rounded-2xl p-8 bg-white/5">
+          <h3 className="font-display font-bold text-white text-2xl mb-6 tracking-tight">
+            Founders
+          </h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {FOUNDERS.map((founder, i) => (
+              <motion.div
+                key={founder.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
+                className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/8 transition-all duration-300"
+                data-ocid={`founders.item.${i + 1}`}
+              >
+                <div className="flex items-start gap-6">
+                  <Avatar className="w-24 h-24 flex-shrink-0 ring-4 ring-vv-accent/30">
+                    <AvatarImage src={founder.image} alt={founder.name} />
+                    <AvatarFallback className="bg-vv-accent text-white font-display font-black text-xl">
+                      {founder.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="text-xs font-bold text-vv-accent uppercase tracking-widest mb-1">
+                      {founder.role}
+                    </div>
+                    <h3 className="font-display font-bold text-white text-xl mb-3">
+                      {founder.name}
+                    </h3>
+                    <p className="text-white/60 text-sm leading-relaxed mb-5">
+                      {founder.bio}
+                    </p>
+                    <div className="flex gap-3">
+                      <a
+                        href={founder.linkedin}
+                        data-ocid={`founders.link.${i + 1}`}
+                        className="w-9 h-9 rounded-full bg-white/10 hover:bg-vv-accent flex items-center justify-center text-white/70 hover:text-white transition-all duration-200"
+                        aria-label={`${founder.name} LinkedIn`}
+                      >
+                        <Linkedin className="w-4 h-4" />
+                      </a>
+                      <a
+                        href={founder.twitter}
+                        data-ocid={`founders.link.${i + 1}`}
+                        className="w-9 h-9 rounded-full bg-white/10 hover:bg-vv-accent flex items-center justify-center text-white/70 hover:text-white transition-all duration-200"
+                        aria-label={`${founder.name} Twitter`}
+                      >
+                        <Twitter className="w-4 h-4" />
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
+// ─── Contact Section ─────────────────────────────────────────────────────────
 function ContactSection() {
   const { actor, isFetching } = useActor();
   const [formData, setFormData] = useState({
@@ -601,7 +1313,7 @@ function ContactSection() {
         );
       }
     } catch {
-      // silently continue — show success regardless
+      // silently continue
     } finally {
       setSubmitting(false);
     }
@@ -639,7 +1351,6 @@ function ContactSection() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-12">
-          {/* Form */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -700,7 +1411,10 @@ function ContactSection() {
                       data-ocid="contact.input"
                       value={formData.contact}
                       onChange={(e) =>
-                        setFormData((p) => ({ ...p, contact: e.target.value }))
+                        setFormData((p) => ({
+                          ...p,
+                          contact: e.target.value,
+                        }))
                       }
                       placeholder="Phone or WhatsApp number"
                       required
@@ -769,7 +1483,6 @@ function ContactSection() {
             </div>
           </motion.div>
 
-          {/* Contact Info */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -830,7 +1543,6 @@ function ContactSection() {
               </div>
             </div>
 
-            {/* Map placeholder */}
             <div className="flex-1 bg-vv-navy rounded-2xl overflow-hidden min-h-[220px] relative">
               <div
                 className="absolute inset-0 bg-cover bg-center opacity-30"
@@ -855,13 +1567,13 @@ function ContactSection() {
   );
 }
 
+// ─── Footer ──────────────────────────────────────────────────────────────────
 function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="bg-vv-navy border-t border-white/10 pt-16 pb-8">
       <div className="max-w-[1200px] mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
-          {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-vv-accent flex items-center justify-center">
@@ -897,7 +1609,6 @@ function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
           <div>
             <h4 className="font-display font-bold text-white text-xs uppercase tracking-widest mb-5">
               Quick Links
@@ -918,7 +1629,6 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Newsletter */}
           <div>
             <h4 className="font-display font-bold text-white text-xs uppercase tracking-widest mb-5">
               Stay Updated
@@ -953,7 +1663,9 @@ function Footer() {
             <p className="text-white/30 text-xs">
               Built with ❤️ using{" "}
               <a
-                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
+                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+                  typeof window !== "undefined" ? window.location.hostname : "",
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-white/60 transition-colors"
@@ -978,24 +1690,31 @@ function Footer() {
   );
 }
 
+// ─── Main Site ───────────────────────────────────────────────────────────────
 function MainSite() {
+  const [cartOpen, setCartOpen] = useState(false);
+
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header onCartOpen={() => setCartOpen(true)} />
       <main>
         <HeroSection />
         <SolutionsSection />
+        <StoreSection onCartOpen={() => setCartOpen(true)} />
         <TechSection />
         <FoundersSection />
         <ContactSection />
       </main>
       <Footer />
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   );
 }
 
+// ─── App ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [route, setRoute] = useState(() => window.location.hash);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
     const handler = () => setRoute(window.location.hash);
@@ -1003,9 +1722,64 @@ export default function App() {
     return () => window.removeEventListener("hashchange", handler);
   }, []);
 
+  const addToCart = useCallback((product: Product) => {
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.product.id === product.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i,
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+  }, []);
+
+  const removeFromCart = useCallback((productId: string) => {
+    setCartItems((prev) => prev.filter((i) => i.product.id !== productId));
+  }, []);
+
+  const updateQuantity = useCallback(
+    (productId: string, quantity: number) => {
+      if (quantity <= 0) {
+        removeFromCart(productId);
+        return;
+      }
+      setCartItems((prev) =>
+        prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i)),
+      );
+    },
+    [removeFromCart],
+  );
+
+  const clearCart = useCallback(() => setCartItems([]), []);
+
+  const totalItems = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+  const totalPrice = cartItems.reduce(
+    (sum, i) => sum + i.product.price * i.quantity,
+    0,
+  );
+
+  const cartCtx: CartContextType = {
+    items: cartItems,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    totalItems,
+    totalPrice,
+  };
+
   if (route.startsWith("#/admin")) {
-    return <AdminPage />;
+    return (
+      <CartContext.Provider value={cartCtx}>
+        <AdminPage />
+      </CartContext.Provider>
+    );
   }
 
-  return <MainSite />;
+  return (
+    <CartContext.Provider value={cartCtx}>
+      <MainSite />
+    </CartContext.Provider>
+  );
 }
